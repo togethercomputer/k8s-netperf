@@ -203,7 +203,7 @@ var rootCmd = &cobra.Command{
 			s.ExternalServer = true
 		}
 		// Get node count
-		nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
+		nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
 		if err != nil {
 			log.Fatal(err)
 		}
