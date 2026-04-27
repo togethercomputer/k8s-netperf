@@ -546,12 +546,12 @@ func BuildSUT(client *kubernetes.Clientset, s *config.PerfScenarios) error {
 		}
 	}
 
-	// Schedule pods to nodes with role worker=, but not nodes with infra= and workload=
+	// Schedule pods to nodes that have the worker role label (value "" or "true", etc.), excluding infra/workload nodes.
 	workerNodeSelectorExpression := &corev1.NodeSelector{
 		NodeSelectorTerms: []corev1.NodeSelectorTerm{
 			{
 				MatchExpressions: []corev1.NodeSelectorRequirement{
-					{Key: "node-role.kubernetes.io/worker", Operator: corev1.NodeSelectorOpIn, Values: []string{""}},
+					{Key: "node-role.kubernetes.io/worker", Operator: corev1.NodeSelectorOpExists},
 					{Key: "node-role.kubernetes.io/infra", Operator: corev1.NodeSelectorOpNotIn, Values: []string{""}},
 					{Key: "node-role.kubernetes.io/workload", Operator: corev1.NodeSelectorOpNotIn, Values: []string{""}},
 				},
@@ -624,14 +624,14 @@ func BuildSUT(client *kubernetes.Clientset, s *config.PerfScenarios) error {
 	}
 
 	// Get node count
-	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker=,node-role.kubernetes.io/infra!="})
+	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker,node-role.kubernetes.io/infra!="})
 	if err != nil {
 		return err
 	}
 	ncount := len(nodes.Items)
 	log.Debugf("Number of nodes with role worker: %d", ncount)
 	if !s.NodeLocal && ncount < 2 {
-		return fmt.Errorf("not enough nodes with label worker= to execute test (current number of nodes: %d)", ncount)
+		return fmt.Errorf("not enough nodes with label node-role.kubernetes.io/worker to execute test (current number of nodes: %d)", ncount)
 	}
 
 	clientRoleAffinity := []corev1.PodAffinityTerm{
@@ -1354,7 +1354,7 @@ func GetZone(c *kubernetes.Clientset) (string, map[string]int, error) {
 	zones := map[string]int{}
 	zone := ""
 	lz := ""
-	n, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
+	n, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
 	if err != nil {
 		return "", zones, fmt.Errorf("unable to query nodes: %v", err)
 	}

@@ -7,6 +7,29 @@
 
 A tool to run network performance tests in Kubernetes clusters.
 
+## Together specific changes
+
+### Usage
+Build:
+
+```shell
+make build
+```
+
+Run:
+
+```shell
+./bin/amd64/k8s-netperf netperf.yaml
+```
+### `netperf.yaml`
+
+This repo includes [`netperf.yaml`](netperf.yaml), a v2 config with **TCP_STREAM** and **UDP_STREAM** cases only, with 32 parallelism.
+For the default netperf driver and a fuller suite (including RR and CRR), use [`netperf.yml`](netperf.yml) as in the quick start below.
+
+### Worker role label (`node-role.kubernetes.io/worker`)
+
+Pods and node-list logic treat the worker label as **present on the node**, not tied to an empty value. Clusters that set either `node-role.kubernetes.io/worker=""` (for example kind) or `node-role.kubernetes.io/worker="true"` are supported for scheduling and for counting worker nodes before tests.
+
 ## Overview
 
 `k8s-netperf` is a comprehensive network performance testing tool designed specifically for Kubernetes environments. It supports multiple benchmark tools (netperf, iperf3, uperf and ib_write_bw) and can test various network scenarios including pod-to-pod, host networking, and cross-availability zone communications.

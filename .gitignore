@@ -16,3 +16,15 @@ bin/
 # vendor/
 
 dist/
+
+*.csv
+*.json
+*.txt
+*.log
+*.yaml
+*.yml
+*.json
+*.txt
+*.log
+*.yaml
+*.yml
