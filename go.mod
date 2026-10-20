@@ -2,6 +2,8 @@ module github.com/cloud-bulldozer/k8s-netperf
 
 go 1.23
 
+toolchain go1.26.10
+
 require (
 	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/cloud-bulldozer/go-commons v1.0.19
