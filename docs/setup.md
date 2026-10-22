@@ -85,7 +85,7 @@ Flags:
       --json                      Instead of human-readable output, return JSON to stdout
       --local                     Run network performance tests with Server-Pods/Client-Pods on the same Node
       --vm                        Launch Virtual Machines instead of pods for client/servers
-      --vm-image string           Use specified VM image (default "quay.io/containerdisks/fedora:39")
+      --vm-image string           Use specified VM image (default "quay.io/containerdisks/fedora:44")
       --sockets uint32            Number of Sockets for VM (default 2)
       --cores uint32              Number of cores for VM (default 2)
       --threads uint32            Number of threads for VM (default 1)
