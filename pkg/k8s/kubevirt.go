@@ -192,6 +192,10 @@ chpasswd:
 runcmd:
   - export HOME=/home/fedora
   - until dnf upgrade -y --refresh ca-certificates; do sleep 3; done
+  - |
+    awk 'tolower($0) ~ /^# emsign/{p=1} p{print} /^-----END CERTIFICATE-----/{p=0}' /etc/pki/ca-trust/extracted/pem/*.pem > /etc/pki/ca-trust/source/blocklist/cve-2026-111943-emsign.pem
+    update-ca-trust extract
+    if grep -qi '^# emsign' /etc/pki/ca-trust/extracted/pem/*.pem; then echo 'CVE-2026-111943: emSign roots still trusted' >&2; fi
   - until dnf install -y --nodocs uperf iperf3 git ethtool automake gcc bc lksctp-tools-devel texinfo --enablerepo=*; do sleep 3; done
   - git clone https://github.com/HewlettPackard/netperf.git
   - cd netperf
@@ -349,6 +353,10 @@ chpasswd:
 runcmd:
   - export HOME=/home/fedora
   - until dnf upgrade -y --refresh ca-certificates; do sleep 3; done
+  - |
+    awk 'tolower($0) ~ /^# emsign/{p=1} p{print} /^-----END CERTIFICATE-----/{p=0}' /etc/pki/ca-trust/extracted/pem/*.pem > /etc/pki/ca-trust/source/blocklist/cve-2026-111943-emsign.pem
+    update-ca-trust extract
+    if grep -qi '^# emsign' /etc/pki/ca-trust/extracted/pem/*.pem; then echo 'CVE-2026-111943: emSign roots still trusted' >&2; fi
   - until dnf install -y --nodocs uperf iperf3 git ethtool automake gcc bc lksctp-tools-devel texinfo --enablerepo=*; do sleep 3; done
   - git clone https://github.com/HewlettPackard/netperf.git
   - cd netperf
