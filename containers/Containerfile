@@ -2,6 +2,16 @@
 ARG RHEL_VERSION
 FROM registry.access.redhat.com/${RHEL_VERSION}:latest
 
+# CVE-2026-111943: upgrade ca-certificates and distrust the emSign roots.
+# RHEL 9 has not shipped a fixed ca-certificates yet, so the roots are
+# blocklisted locally. The build fails if any emSign root is still trusted.
+RUN dnf -y update ca-certificates && \
+    awk 'tolower($0) ~ /^# emsign/{p=1} p{print} /^-----END CERTIFICATE-----/{p=0}' \
+        /etc/pki/ca-trust/extracted/pem/*.pem > /etc/pki/ca-trust/source/blocklist/cve-2026-111943-emsign.pem && \
+    update-ca-trust extract && \
+    if grep -qi '^# emsign' /etc/pki/ca-trust/extracted/pem/*.pem; then echo "emSign roots still trusted" >&2; exit 1; fi && \
+    dnf clean all
+
 COPY appstream.repo /etc/yum.repos.d/centos8-appstream.repo
 
 COPY netperf.diff /tmp/netperf.diff
@@ -36,4 +46,5 @@ RUN curl -L https://github.com/esnet/iperf/releases/download/3.16/iperf-3.16.tar
 
 RUN rm -rf netperf && \
     dnf clean all
+RUN if grep -qi '^# emsign' /etc/pki/ca-trust/extracted/pem/*.pem; then echo "emSign roots still trusted" >&2; exit 1; fi
 COPY super-netperf /usr/bin/super-netperf

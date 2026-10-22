@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -99,6 +100,20 @@ const clientAcrossRole = "client-across"
 const hostNetServerRole = "host-server"
 const hostNetClientRole = "host-client"
 const k8sNetperfImage = "quay.io/cloud-bulldozer/k8s-netperf:latest"
+
+// caBundle is the Alpine 3.23 ca-certificates 20261020-r0 bundle, which has the
+// CVE-2026-111943 fix. It is mounted over the trust store of k8sNetperfImage
+// (UBI 9, no fixed ca-certificates release yet) so the emSign roots are not trusted.
+//
+//go:embed ca-bundle.crt
+var caBundle string
+
+const (
+	caBundleConfigMap = "netperf-ca-bundle"
+	caBundleKey       = "ca-bundle.crt"
+	caBundlePath      = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+	caBundleTrustPath = "/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt"
+)
 const UdnName = "udn-primary-netperf"
 const CudnName = "cudn-secondary-netperf"
 const SriovNadName = "sriov-netperf"
@@ -179,6 +194,19 @@ func BuildInfra(client *kubernetes.Clientset, udn bool) error {
 		if err != nil {
 			return fmt.Errorf("😥 Unable to create namespace: %v", err)
 		}
+	}
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMap, Namespace: namespace},
+		Data:       map[string]string{caBundleKey: caBundle},
+	}
+	if _, err = client.CoreV1().ConfigMaps(namespace).Get(context.TODO(), caBundleConfigMap, metav1.GetOptions{}); err == nil {
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(context.TODO(), cm, metav1.UpdateOptions{})
+	} else {
+		log.Infof("🔨 Creating CA bundle configmap: %s", caBundleConfigMap)
+		_, err = client.CoreV1().ConfigMaps(namespace).Create(context.TODO(), cm, metav1.CreateOptions{})
+	}
+	if err != nil {
+		return fmt.Errorf("😥 Unable to create CA bundle configmap: %v", err)
 	}
 	_, err = client.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), sa, metav1.GetOptions{})
 	if err == nil {
@@ -1399,6 +1427,13 @@ func CreateDeployment(dp DeploymentParams, client *kubernetes.Clientset) (*appsv
 			Image:           dp.Image,
 			Command:         dp.Commands[i],
 			ImagePullPolicy: corev1.PullAlways,
+			Env: []corev1.EnvVar{
+				{Name: "SSL_CERT_FILE", Value: caBundlePath},
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{Name: caBundleConfigMap, MountPath: caBundlePath, SubPath: caBundleKey, ReadOnly: true},
+				{Name: caBundleConfigMap, MountPath: caBundleTrustPath, SubPath: caBundleKey, ReadOnly: true},
+			},
 		}
 
 		// Add privileged security context if requested
@@ -1446,6 +1481,16 @@ func CreateDeployment(dp DeploymentParams, client *kubernetes.Clientset) (*appsv
 					ServiceAccountName:            sa,
 					HostNetwork:                   dp.HostNetwork,
 					Containers:                    cmdContainers,
+					Volumes: []corev1.Volume{
+						{
+							Name: caBundleConfigMap,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{Name: caBundleConfigMap},
+								},
+							},
+						},
+					},
 					Affinity: &corev1.Affinity{
 						NodeAffinity:    &dp.NodeAffinity,
 						PodAffinity:     &dp.PodAffinity,
