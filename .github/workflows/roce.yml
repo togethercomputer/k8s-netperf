@@ -53,6 +53,7 @@ jobs:
 
           # Copy Kind config from repository
           cp $GITHUB_WORKSPACE/testing/kind-config-rdma.yaml /tmp/cloud-init/kind-config.yaml
+          cp $GITHUB_WORKSPACE/testing/kind-ca-upgrade.sh /tmp/cloud-init/kind-ca-upgrade.sh
 
           # Copy k8s-netperf binary and config
           cp $GITHUB_WORKSPACE/bin/amd64/k8s-netperf /tmp/cloud-init/
@@ -86,6 +87,7 @@ jobs:
             '  - cp /mnt/cdrom/k8s-netperf /usr/local/bin/' \
             '  - chmod +x /usr/local/bin/k8s-netperf' \
             '  - cp /mnt/cdrom/roce.yml /tmp/' \
+            '  - cp /mnt/cdrom/kind-ca-upgrade.sh /tmp/' \
             '  - umount /mnt/cdrom' \
             '  - modprobe ib_core || { echo "❌ Failed to load ib_core module"; exit 1; }' \
             '  - modprobe ib_uverbs || { echo "❌ Failed to load ib_uverbs module"; exit 1; }' \
@@ -100,6 +102,7 @@ jobs:
             '  - chmod +x /usr/local/bin/kind' \
             '  - KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --config=/tmp/kind-config.yaml' \
             '  - kind get clusters' \
+            '  - sh /tmp/kind-ca-upgrade.sh podman kind-control-plane' \
             '  - curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"' \
             '  - chmod +x /usr/local/bin/kubectl' \
             '  - kubectl label node kind-control-plane node-role.kubernetes.io/worker=""' \
@@ -121,7 +124,7 @@ jobs:
 
           # Create cloud-init ISO
           echo "Creating cloud-init ISO..."
-          genisoimage -output /tmp/cloud-init.iso -volid cidata -joliet -rock /tmp/cloud-init/user-data /tmp/cloud-init/meta-data /tmp/cloud-init/kind-config.yaml /tmp/cloud-init/k8s-netperf /tmp/cloud-init/roce.yml
+          genisoimage -output /tmp/cloud-init.iso -volid cidata -joliet -rock /tmp/cloud-init/user-data /tmp/cloud-init/meta-data /tmp/cloud-init/kind-config.yaml /tmp/cloud-init/k8s-netperf /tmp/cloud-init/roce.yml /tmp/cloud-init/kind-ca-upgrade.sh
 
           # Boot QEMU with cloud image in background
           echo "Starting QEMU VM..."
