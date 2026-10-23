@@ -43,6 +43,10 @@ jobs:
       - name: Checkout k8s-netperf
         uses: actions/checkout@v6
 
+      - name: Upgrade ca-certificates on kind nodes
+        run: |
+          sh testing/kind-ca-upgrade.sh docker $(kind get nodes --name ovn)
+
       - name: Build k8s-netperf
         run: |
           make build
